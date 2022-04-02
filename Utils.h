@@ -41,11 +41,7 @@ std::wstring GetScanUtilityDirectory();
 std::wstring GetReportDirectory();
 std::wstring GetSignatureReportFindingsFilename();
 std::wstring GetSignatureReportSummaryFilename();
-std::wstring GetSignatureStatusFilename();
 
-bool OpenStatusFile(const std::wstring& filename);
-bool CloseStatusFile();
-uint32_t LogStatusMessage(const wchar_t* fmt, ...);
 uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...);
 
 bool ParseVersion(std::string version, int& major, int& minor, int& build);

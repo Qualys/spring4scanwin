@@ -242,10 +242,6 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
     cmdline_options.scanLocalDrives = true;
   }
 
-  if (cmdline_options.reportSig) {
-    OpenStatusFile(GetSignatureStatusFilename());
-  }
-  
   if (cmdline_options.lowpriority) {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
     if (!SetPriorityClass(GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN))
@@ -368,7 +364,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
   repSummary.scanStart = time(0);
 
   if (cmdline_options.reportSig) {
-    LogStatusMessage(L"Scan Start: %s", FormatLocalTime(repSummary.scanStart).c_str());
+    wprintf(L"Scan Start: %s", FormatLocalTime(repSummary.scanStart).c_str());
   }
 
   if (cmdline_options.scanLocalDrives) {
@@ -424,7 +420,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
   }
   
   if (cmdline_options.reportSig) {
-    LogStatusMessage(L"\nScan End: %s", FormatLocalTime(repSummary.scanEnd).c_str());
+    wprintf(L"\nScan End: %s", FormatLocalTime(repSummary.scanEnd).c_str());
   }
 
 
@@ -454,18 +450,16 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
 END:
 
   if (cmdline_options.reportSig) {
-    LogStatusMessage(L"Result File: %s", GetSignatureReportFindingsFilename().c_str());
-    LogStatusMessage(L"Summary File: %s", GetSignatureReportSummaryFilename().c_str());
-    LogStatusMessage(L"Run Status: %s", repSummary.scanStatus.c_str());
+    wprintf(L"Result File: %s", GetSignatureReportFindingsFilename().c_str());
+    wprintf(L"Summary File: %s", GetSignatureReportSummaryFilename().c_str());
+    wprintf(L"Run Status: %s", repSummary.scanStatus.c_str());
     if (repSummary.scanErrorCount) {
-      LogStatusMessage(L"Errors :");
+      wprintf(L"Errors :");
       for (const auto& e : error_array) {
-        LogStatusMessage(L"%s", e.c_str());
+        wprintf(L"%s", e.c_str());
       }
     }
   }
-
-  CloseStatusFile();
 
   return rv;
 }

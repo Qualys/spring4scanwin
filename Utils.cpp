@@ -6,7 +6,6 @@ constexpr wchar_t* qualys_program_data_legacy_location =  L"%SystemDrive%\\Docum
 constexpr wchar_t* qualys_program_data_location = L"%ProgramData%\\Qualys\\Spring4Shell";
 constexpr wchar_t* report_sig_output_file = L"findings.out";
 constexpr wchar_t* report_sig_summary_file = L"summary.out";
-constexpr wchar_t* report_sig_status_file = L"status.txt";
 
 
 FILE* status_file = nullptr;
@@ -262,10 +261,6 @@ std::wstring GetSignatureReportSummaryFilename() {
   return GetReportDirectory() + L"\\" + report_sig_summary_file;
 }
 
-std::wstring GetSignatureStatusFilename() {
-  return GetReportDirectory() + L"\\" + report_sig_status_file;
-}
-
 uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...) {
   uint32_t retval = 0;
   va_list ap;
@@ -288,112 +283,13 @@ uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...) {
   return retval;
 }
 
-bool OpenStatusFile(const std::wstring& filename) {
-  errno_t err = _wfopen_s(&status_file, filename.c_str(), L"w+, ccs=UTF-8");
-  return (EINVAL != err);
-}
-
-uint32_t LogStatusMessage(const wchar_t* fmt, ...) {
-  uint32_t retval = 0;
-  va_list ap;
-
-  if (fmt == NULL) return 0;
-
-  va_start(ap, fmt);
-  vfwprintf(stdout, fmt, ap);
-  fwprintf(stdout, L"\n");
-  va_end(ap);
-
-  if (status_file) {
-    va_start(ap, fmt);
-    retval = vfwprintf(status_file, fmt, ap);
-    fwprintf(status_file, L"\n");
-    va_end(ap);
-    fflush(status_file);
-  }
-
-  return retval;
-}
-
-bool CloseStatusFile() {
-  if (status_file) {
-    fclose(status_file);
-  }
-  return true;
-}
-
 bool ParseVersion(std::string version, int& major, int& minor, int& build) {
   return (0 != sscanf_s(version.c_str(), "%d.%d.%d", &major, &minor, &build));
 }
 
-bool IsCVE20214104Mitigated(std::string log4jVendor, std::string version) {
-  int major = 0, minor = 0, build = 0;
-  if (log4jVendor != "log4j") return true;
-  if (ParseVersion(version, major, minor, build)) {
-    if ((major >= 2) || (major < 1)) return true;
-    if ((major == 1) && (minor <= 1)) return true;
-    if ((major == 1) && (minor == 2) && (build >= 17)) return true;
-    if ((major == 1) && (minor >= 3)) return true;
-  }
-  return false;
-}
-
-bool IsCVE202144228Mitigated(std::string log4jVendor, bool foundJNDILookupClass,
-                             std::string version) {
-  int major = 0, minor = 0, build = 0;
-  if (!foundJNDILookupClass) return true;
-  if (log4jVendor !="log4j-core") return true;  // Impacted JAR
-  if (ParseVersion(version, major, minor, build)) {
-    if (major < 2) return true;                                      // N/A
-    if ((major == 2) && (minor == 3) && (build >= 1)) return true;   // Java 6
-    if ((major == 2) && (minor == 12) && (build >= 2)) return true;  // Java 7
-    if ((major == 2) && (minor >= 15)) return true;                  // Java 8+
-  }
-  return false;
-}
-
-bool IsCVE202144832Mitigated(std::string log4jVendor, std::string version) {
-  int major = 0, minor = 0, build = 0;
-  if (log4jVendor != "log4j-core") return true;  // Impacted JAR
-  if (ParseVersion(version, major, minor, build)) {
-    if (major < 2) return true;                                      // N/A
-    if ((major == 2) && (minor == 3) && (build >= 2)) return true;   // Java 6
-    if ((major == 2) && (minor == 12) && (build >= 4)) return true;  // Java 7
-    if ((major == 2) && (minor == 17) && (build >= 1)) return true;  // Java 8+
-    if ((major == 2) && (minor >= 18)) return true;                  // Java 8+
-  }
-  return false;
-}
-
-bool IsCVE202145046Mitigated(std::string log4jVendor, bool foundJNDILookupClass,
-                             std::string version) {
-  int major = 0, minor = 0, build = 0;
-  if (!foundJNDILookupClass) return true;
-  if (log4jVendor != "log4j-core") return true;  // Impacted JAR
-  if (ParseVersion(version, major, minor, build)) {
-    if (major < 2) return true;                                      // N/A
-    if ((major == 2) && (minor == 3) && (build >= 1)) return true;   // Java 6
-    if ((major == 2) && (minor == 12) && (build >= 2)) return true;  // Java 7
-    if ((major == 2) && (minor >= 16)) return true;                  // Java 8+
-  }
-  return false;
-}
-
-bool IsCVE202145105Mitigated(std::string log4jVendor, std::string version) {
-  int major = 0, minor = 0, build = 0;
-  if (log4jVendor != "log4j-core") return true;  // Impacted JAR
-  if (ParseVersion(version, major, minor, build)) {
-    if (major < 2) return true;                                      // N/A
-    if ((major == 2) && (minor == 3) && (build >= 1)) return true;   // Java 6
-    if ((major == 2) && (minor == 12) && (build >= 2)) return true;  // Java 7
-    if ((major == 2) && (minor >= 17)) return true;                  // Java 8+
-  }
-  return false;
-}
-
 int DumpGenericException(const wchar_t* szExceptionDescription,
                          DWORD dwExceptionCode, PVOID pExceptionAddress) {
-  LogStatusMessage(L"Unhandled Exception Detected - Reason: %s (0x%x) at address 0x%p\n\n",
+  wprintf(L"Unhandled Exception Detected - Reason: %s (0x%x) at address 0x%p\n\n",
     szExceptionDescription, 
     dwExceptionCode, 
     pExceptionAddress);
@@ -426,7 +322,7 @@ int DumpExceptionRecord(PEXCEPTION_POINTERS pExPtrs) {
             break;
         }
       }
-      LogStatusMessage(
+      wprintf(
           L"Unhandled Exception Detected - Reason: %s(0x%x) at address 0x%p %s\n\n",
           szStatus, dwExceptionCode, pExceptionAddress, szSubStatus);
       break;
@@ -531,7 +427,7 @@ LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs) {
   SYSTEMTIME sysTime;
   SECURITY_ATTRIBUTES saMiniDumpSecurity;
 
-  LogStatusMessage(L"Run status : Failed\n");
+  wprintf(L"Run status : Failed\n");
 
   // Attempt to dump an unhandled exception banner just in case things are
   // so bad that a minidump cannot be created.
@@ -557,7 +453,7 @@ LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs) {
              sysTime.wSecond,
              sysTime.wMilliseconds);
 
-  LogStatusMessage(L"Creating minidump file %s with crash details.\n",
+  wprintf(L"Creating minidump file %s with crash details.\n",
                    szMiniDumpFileName);
 
   // Create the file to dump the minidump data into...
@@ -604,7 +500,7 @@ LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs) {
         SAFE_CLOSE_HANDLE(hDumpFile);
         DeleteFile(szMiniDumpFileName);
 
-        LogStatusMessage(L"Failed to create minidump file %s.\n", szMiniDumpFileName);
+        wprintf(L"Failed to create minidump file %s.\n", szMiniDumpFileName);
       }
     }
 

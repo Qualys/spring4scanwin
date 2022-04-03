@@ -68,7 +68,7 @@ int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wst
             foundManifest = true;
             UncompressZIPContentsToString(zf, manifest);
           }
-          if (0 == stricmp(filename, "WEB-INF/web.xml")) {
+          if (0 == stricmp(filename, "WEB-INF/")) {
             foundWAR = true;
           }
           if (0 == stricmp(filename, "META-INF/application.xml")) {

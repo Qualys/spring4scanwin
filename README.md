@@ -1,23 +1,18 @@
 THIS SCRIPT IS PROVIDED TO YOU "AS IS." TO THE EXTENT PERMITTED BY LAW, QUALYS HEREBY DISCLAIMS ALL WARRANTIES AND LIABILITY FOR THE PROVISION OR USE OF THIS SCRIPT. IN NO EVENT SHALL THESE SCRIPTS BE DEEMED TO BE CLOUD SERVICES AS PROVIDED BY QUALYS
 
 # Direct Download Links
-https://github.com/Qualys/log4jscanwin/releases/download/2.1.2.0/Log4jScanner-2.1.2.0.zip
-https://github.com/Qualys/log4jscanwin/releases/download/2.1.2.0/Log4jRemediate-1.2.1.1.zip
 
-# Log4jScanner
+# Spring4Scanner
 ## Description
-The Log4jScanner.exe utility helps to detect CVE-2021-44228, CVE-2021-44832, CVE-2021-45046, and CVE-2021-45105 vulnerabilities.
-The utility will scan the entire hard drive(s) including archives (and nested JARs) for the Java class that indicates the Java application contains a vulnerable log4j library. The utility will output its results to a console.
+The Spring4Scan.exe utility helps to detect CVE-2022-22963, and CVE-2022-22965 vulnerabilities.
+The utility will scan the entire hard drive(s) including archives (and nested JARs) for the Java class that indicates the Java application contains a vulnerable spring framework or spring cloud library. The utility will output its results to a console.
 
-Qualys has added the following new QIDs that are designed to look for the results of this scan and mark the asset as vulnerable if the vulnerable log4j library was found.
-- (376160) CVE-2021-44228
-- (376193) CVE-2021-45046
-- (376195) CVE-2021-45105
-- (376210) CVE-2021-44832
-- (45515) Information Gathering that the Log4j Scan Utility was ran on the host
+Qualys has added the following new QIDs that are designed to look for the results of this scan and mark the asset as vulnerable if the vulnerable spring framework or spring cloud library was found.
+- CVE-2022-22963
+- CVE-2022-22965
 
 Qualys customers should use the following to run the tool on any asset they want to scan, from an elevated command prompt:
-> Log4jScanner.exe /scan /report_sig
+> Spring4Scan.exe /scan /report_sig
 
 ## Usage
 ```
@@ -55,42 +50,41 @@ Qualys customers should use the following to run the tool on any asset they want
 ```
 
 Sample Usage (from an elevated command prompt) - The following command helps you scan local drives for vulnerable JAR, WAR, EAR, and ZIP.
-> Log4jScanner.exe /scan
+> Spring4Scan.exe /scan
 
 Sample Usage (from an elevated command prompt) - The following command helps you scan local drives for vulnerable files and writes a signature report to C:\ProgramData\Qualys
-> Log4jScanner.exe /scan /report_sig
+> Spring4Scan.exe /scan /report_sig
 
 ## Output - The following output shows the detection
 ```
-D:\Temp>Log4jScanner.exe /scan /exclude_directory C:\ /knownZipExtension .ZZZ
-Qualys Log4j Vulnerability Scanner 2.1.1.0
+D:\Temp>Spring4Scan.exe /scan_directory d:\spring4shell
+Qualys Spring-Boot Vulnerability Scanner 1.0.0.0
 https://www.qualys.com/
-Dependencies: minizip/1.1 zlib/1.2.11, bzip2/1.0.8
-Supported CVE(s): CVE-2021-4104, CVE-2021-44228, CVE-2021-44832, CVE-2021-45046, CVE-2021-45105
+Dependencies: minizip/1.1 zlib/1.2.11, bzip2/1.0.8, rapidjson/1.1.0
+Supported CVE(s): CVE-2022-22963, CVE-2022-22965
 
 Known TAR Extensions            : .tar
 Known GZIP TAR Extensions       : .tgz, .tar.gz
 Known BZIP TAR Extensions       : .tbz, .tbz2, .tar.bz, .tar.bz2
-Known ZIP Extensions            : .zip, .jar, .war, .ear, .par, .kar, .sar, .rar, .jpi, .hpi, .apk, .ZZZ
-Excluding Directories:
-        C:\
+Known ZIP Extensions            : .zip, .jar, .war, .ear, .par, .kar, .sar, .rar, .jpi, .hpi, .apk
 
-
-Scanning Local Drives...
-Log4j Found: 'D:\Src\Projects\log4jscanner\jar\testdata\arara.jar' ( Manifest Vendor: Unknown, Manifest Version: 6.1.1, JNDI Class: Found, Log4j Vendor: log4j-core, Log4j Version: 2.14.1, CVE Status: Potentially Vulnerable ( CVE-2021-44228: Found CVE-2021-44832: Found CVE-2021-45046: Found CVE-2021-45105: Found ) )
-Log4j Found: 'D:\Src\Projects\log4jscanner\jar\testdata\arara.signed.jar' ( Manifest Vendor: Unknown, Manifest Version: 6.1.1, JNDI Class: Found, Log4j Vendor: log4j-core, Log4j Version: 2.14.1, CVE Status: Potentially Vulnerable ( CVE-2021-44228: Found CVE-2021-44832: Found CVE-2021-45046: Found CVE-2021-45105: Found ) )
+Scanning 'd:\spring4shell\'...
+Spring-Framework Found: 'd:\spring4shell\demo-0.0.1-SNAPSHOT.war' ( Manifest Title: demo, Manifest Vendor: Unknown, Manifest Version: 0.0.1-SNAPSHOT, CVE Status: Mitigated )
+Spring Cloud Found: 'd:\spring4shell\demo-cloud-0.0.1-SNAPSHOT.war!WEB-INF/lib/spring-cloud-function-core-3.2.2.jar' ( Manifest Title: Spring Cloud Function Core, Manifest Vendor: Pivotal Software, Inc., Manifest Version: 3.2.2, CVE Status: Potentially Vulnerable ( CVE-2022-22963: Found ) )
+Spring-Framework Found: 'd:\spring4shell\demo-cloud-0.0.1-SNAPSHOT.war' ( Manifest Title: demo-cloud, Manifest Vendor: Unknown, Manifest Version: 0.0.1-SNAPSHOT, CVE Status: Mitigated )
+Spring Cloud Found: 'd:\spring4shell\spring-cloud-function-core-3.2.2.jar' ( Manifest Title: Spring Cloud Function Core, Manifest Vendor: Pivotal Software, Inc., Manifest Version: 3.2.2, CVE Status: Potentially Vulnerable ( CVE-2022-22963: Found ) )
 
 Scan Summary:
-        Scan Date:                       2022-01-10T10:05:18-0800
-        Scan Duration:                   9 Seconds
-        Scan Error Count:                1
-        Scan Status:                     Partially Successful
-        Files Scanned:                   184889
-        Directories Scanned:             30159
-        Compressed File(s) Scanned:      96
-        JAR(s) Scanned:                  50
-        WAR(s) Scanned:                  0
+        Scan Date:                       2022-04-03T15:02:58-0700
+        Scan Duration:                   28 Seconds
+        Scan Error Count:                0
+        Scan Status:                     Success
+        Files Scanned:                   5
+        Directories Scanned:             0
+        Compressed File(s) Scanned:      348
+        JAR(s) Scanned:                  341
+        WAR(s) Scanned:                  3
         EAR(s) Scanned:                  0
-        TAR(s) Scanned:                  2
-        Vulnerabilities Found:           22
+        TAR(s) Scanned:                  0
+        Vulnerabilities Found:           3
 ```

@@ -51,18 +51,27 @@ class CReportVulnerabilities {
   std::wstring manifestTitle;
   std::wstring manifestVendor;
   std::wstring manifestVersion;
-  std::vector<std::wstring> libs;
+  bool detectedSpringFramework;
+  bool detectedSpringCloud;
+  std::vector<std::wstring> dependencies;
+  bool cve202222963Mitigated;
+  bool cve202222965Mitigated;
   std::wstring cveStatus;
 
   CReportVulnerabilities(std::wstring file, std::wstring manifestTitle, std::wstring manifestVendor, std::wstring manifestVersion, 
-                         std::vector<std::wstring> libs, std::wstring cveStatus)
+                         bool detectedSpringFramework, bool detectedSpringCloud, std::vector<std::wstring> dependencies, std::wstring cveStatus,
+                         bool cve202222963Mitigated, bool cve202222965Mitigated)
   {
     this->file = file;
     this->manifestTitle = manifestTitle;
     this->manifestVendor = manifestVendor;
     this->manifestVersion = manifestVersion;
-    this->libs = libs;
+    this->detectedSpringFramework = detectedSpringFramework;
+    this->detectedSpringCloud = detectedSpringCloud;
+    this->dependencies = dependencies;
     this->cveStatus = cveStatus;
+    this->cve202222963Mitigated = cve202222963Mitigated;
+    this->cve202222965Mitigated = cve202222965Mitigated;
   }
 };
 

@@ -19,9 +19,10 @@
 #include <ctime>
 #include <memory>
 
+#include "zlib/zlib.h"
+#include "bzip2/bzlib.h"
 #include "minizip/ioapi.h"
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
 #include "minizip/iowin32.h"
-
-#include "Log.h"
+#include "tarlib/tarlib.h"

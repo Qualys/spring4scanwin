@@ -1,291 +1,13 @@
+
 #include "stdafx.h"
 #include "Utils.h"
 
 
-constexpr wchar_t* qualys_program_data_legacy_location =  L"%SystemDrive%\\Documents and Settings\\All Users\\Application Data\\Qualys\\Spring4Shell";
-constexpr wchar_t* qualys_program_data_location = L"%ProgramData%\\Qualys\\Spring4Shell";
+constexpr wchar_t* qualys_program_data_legacy_location =  L"%SystemDrive%\\Documents and Settings\\All Users\\Application Data\\Qualys\\Spring4Scan";
+constexpr wchar_t* qualys_program_data_location = L"%ProgramData%\\Qualys\\Spring4Scan";
 constexpr wchar_t* report_sig_output_file = L"findings.out";
 constexpr wchar_t* report_sig_summary_file = L"summary.out";
 
-
-FILE* status_file = nullptr;
-std::vector<std::wstring> error_array;
-
-
-std::wstring A2W(const std::string& str) {
-  int length_wide = MultiByteToWideChar(CP_ACP, 0, str.data(), -1, NULL, 0);
-  wchar_t *string_wide = static_cast<wchar_t*>(_alloca((length_wide * sizeof(wchar_t)) + sizeof(wchar_t)));
-  MultiByteToWideChar(CP_ACP, 0, str.data(), -1, string_wide, length_wide);
-  std::wstring result(string_wide, length_wide - 1);
-  return result;
-}
-
-std::string W2A(const std::wstring& str) {
-  int length_ansi = WideCharToMultiByte(CP_ACP, 0, str.data(), -1, NULL, 0, NULL, NULL);
-  char* string_ansi = static_cast<char*>(_alloca(length_ansi + sizeof(char)));
-  WideCharToMultiByte(CP_ACP, 0, str.data(), -1, string_ansi, length_ansi, NULL, NULL);
-  std::string result(string_ansi, length_ansi - 1);
-  return result;
-}
-
-bool StartsWithCaseInsensitive(const std::wstring& text, const std::wstring& prefix) {
-  return (prefix.empty() ||
-    (text.size() >= prefix.size() &&
-      std::mismatch(text.begin(), text.end(), prefix.begin(), prefix.end(),
-        [](wchar_t first_char, wchar_t second_char) {
-          return first_char == second_char || towlower(first_char) == towlower(second_char);
-        }).second == prefix.end()));
-}
-
-void SplitWideString(std::wstring str, const std::wstring& token, std::vector<std::wstring>& result) {
-  while (str.size()) {
-    auto index = str.find(token);
-    if (index != std::wstring::npos) {
-      result.push_back(str.substr(0, index));
-      str = str.substr(index + token.size());      
-    }
-    else {
-      result.push_back(str);
-      str.clear();
-    }
-  }
-}
-
-bool SanitizeContents(std::string& str) {
-  auto iter = str.begin();
-  while (iter != str.end()) {
-    if (*iter == '\r') {
-      iter = str.erase(iter);
-    } else {
-      ++iter;
-    }
-  }
-  return true;
-}
-
-bool StripWhitespace(std::string& str) {
-  while (1) {
-    if (str.length() == 0) break;
-    if (!isascii(str[0])) break;
-    if (!isspace(str[0])) break;
-    str.erase(0, 1);
-  }
-
-  int n = (int)str.length();
-  while (n > 0) {
-    if (!isascii(str[n - 1])) break;
-    if (!isspace(str[n - 1])) break;
-    n--;
-  }
-  str.erase(n, str.length() - n);
-  return true;
-}
-
-bool GetDictionaryValue(std::string& dict, std::string name,
-                        std::string defaultValue, std::string& value) {
-  if (std::string::npos != dict.find(name.c_str(), 0)) {
-    size_t pos = dict.find(name.c_str(), 0);
-    size_t eol = dict.find("\n", pos);
-    value = dict.substr(pos + name.size(), eol - (pos + name.size()));
-    return true;
-  }
-  value = defaultValue;
-  return false;
-}
-
-bool ExpandEnvironmentVariables(const wchar_t* source, std::wstring& destination) {
-  try {
-    DWORD dwReserve = ExpandEnvironmentStrings(source, nullptr, 0);
-    if (dwReserve == 0) {
-      return false;
-    }
-    destination.resize(dwReserve);
-    DWORD dwWritten = ExpandEnvironmentStrings(source, &destination[0],
-                                               (DWORD)destination.size());
-    if (dwWritten == 0) {
-      return false;
-    }
-    // dwWritten includes the null terminating character
-    destination.resize(dwWritten - 1);
-  } catch (std::bad_alloc&) {
-    return false;
-  }
-  return true;
-}
-
-bool DirectoryExists(std::wstring directory) {
-  if (directory.empty()) {
-    return false;
-  }
-  DWORD fileAttr = GetFileAttributes(directory.c_str());
-  return (fileAttr != INVALID_FILE_ATTRIBUTES &&
-          (fileAttr & FILE_ATTRIBUTE_DIRECTORY));
-}
-
-bool IsKnownFileExtension(const std::vector<std::wstring>& exts, const std::wstring &file) {
-  for (const auto& ext : exts) {
-    if ((file.size() >= ext.size()) &&
-      (_wcsicmp(file.substr(file.size() - ext.size()).c_str(), ext.c_str()) == 0))
-      return true;
-  }
-  return false;
-}
-
-bool NormalizeDriveName(std::wstring& drive) {
-  if ((0 == drive.substr(0, 1).compare(L"\"")) || (0 == drive.substr(0, 1).compare(L"'"))) {
-    drive.erase(0, 1);
-  }
-  if ((0 == drive.substr(drive.size() - 1, 1).compare(L"\"")) || (0 == drive.substr(drive.size() - 1, 1).compare(L"'"))) {
-    drive.erase(drive.size() - 1, 1);
-  }
-  if (0 != drive.substr(drive.size() - 1, 1).compare(L"\\")) {
-    drive += L"\\";
-  }
-  return true;
-}
-
-bool NormalizeDirectoryName(std::wstring& dir) {
-  if ((0 == dir.substr(0, 1).compare(L"\"")) || (0 == dir.substr(0, 1).compare(L"'"))) {
-    dir.erase(0, 1);
-  }
-  if ((0 == dir.substr(dir.size() - 1, 1).compare(L"\"")) || (0 == dir.substr(dir.size() - 1, 1).compare(L"'"))) {
-    dir.erase(dir.size() - 1, 1);
-  }
-  if (0 != dir.substr(dir.size() - 1, 1).compare(L"\\")) {
-    dir += L"\\";
-  }
-  return true;
-}
-
-bool NormalizeFileName(std::wstring& file) {
-  if ((0 == file.substr(0, 1).compare(L"\"")) || (0 == file.substr(0, 1).compare(L"'"))) {
-    file.erase(0, 1);
-  }
-  if ((0 == file.substr(file.size() - 1, 1).compare(L"\"")) || (0 == file.substr(file.size() - 1, 1).compare(L"'"))) {
-    file.erase(file.size() - 1, 1);
-  }
-  return true;
-}
-
-bool NormalizeFileExtension(std::wstring& ext) {
-  if ((0 == ext.substr(0, 1).compare(L"\"")) || (0 == ext.substr(0, 1).compare(L"'"))) {
-    ext.erase(0, 1);
-  }
-  if ((0 == ext.substr(ext.size() - 1, 1).compare(L"\"")) || (0 == ext.substr(ext.size() - 1, 1).compare(L"'"))) {
-    ext.erase(ext.size() - 1, 1);
-  }
-  return true;
-}
-
-std::wstring GetHostName() {
-  wchar_t buf[1024] = {0};
-  DWORD size = _countof(buf);
-  std::wstring hostname;
-
-  if (GetComputerNameEx(ComputerNameDnsFullyQualified, buf, &size)) {
-    hostname = buf;
-  }
-
-  return hostname;
-}
-
-std::wstring FormatLocalTime(time_t datetime) {
-  wchar_t buf[64] = {0};
-  struct tm* tm = NULL;
-
-  tm = localtime(&datetime);
-  wcsftime(buf, _countof(buf) - 1, L"%FT%T%z", tm);
-
-  return std::wstring(buf);
-}
-
-std::wstring GetScanUtilityDirectory() {
-  wchar_t path[MAX_PATH] = {0};
-  std::wstring utility_dir;
-  std::wstring::size_type pos;
-  if (GetModuleFileName(NULL, path, _countof(path))) {
-    utility_dir = path;
-    pos = utility_dir.find_last_of(L"\\");
-    utility_dir = utility_dir.substr(0, pos);
-  }
-  return utility_dir;
-}
-
-std::wstring GetReportDirectory() {
-  std::wstring destination_dir;
-  std::wstring report_dir;
-  DWORD dwVersion = 0; 
-  DWORD dwMajorVersion = 0;
-  DWORD dwMinorVersion = 0; 
-
-  dwVersion = GetVersion();
-  dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
-  dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
-
-  if ( (dwMajorVersion >= 6) ||
-       (dwMajorVersion == 5 && dwMinorVersion >= 3) ) {
-    //
-    // Windows Vista or Better
-    //
-    if (ExpandEnvironmentVariables(qualys_program_data_location,
-                                   destination_dir)) {
-      if (!DirectoryExists(destination_dir.c_str())) {
-        _wmkdir(destination_dir.c_str());
-      }
-      report_dir = destination_dir;
-    }
-  } else {
-    //
-    // Windows XP, Windows Server 2003, Windows Server 2003 R2
-    //
-    if (ExpandEnvironmentVariables(qualys_program_data_legacy_location,
-                                   destination_dir)) {
-      if (!DirectoryExists(destination_dir.c_str())) {
-        _wmkdir(destination_dir.c_str());
-      }
-      report_dir = destination_dir;
-    }
-  }
-
-  if (report_dir.empty()) {
-    report_dir = GetScanUtilityDirectory();
-  }
-  return report_dir;
-}
-
-std::wstring GetSignatureReportFindingsFilename() {
-  return GetReportDirectory() + L"\\" + report_sig_output_file;
-}
-
-std::wstring GetSignatureReportSummaryFilename() {
-  return GetReportDirectory() + L"\\" + report_sig_summary_file;
-}
-
-uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...) {
-  uint32_t retval = 0;
-  va_list ap;
-  wchar_t err[1024] = {0};
-
-  if (fmt == NULL) return 0;
-
-  if (verbose) {
-    va_start(ap, fmt);
-    vfwprintf(stdout, fmt, ap);
-    fwprintf(stdout, L"\n");
-    va_end(ap);
-  }
-
-  va_start(ap, fmt);
-  retval = vswprintf(err, _countof(err), fmt, ap);
-  va_end(ap);
-  error_array.push_back(err);
-
-  return retval;
-}
-
-bool ParseVersion(std::string version, int& major, int& minor, int& build) {
-  return (0 != sscanf_s(version.c_str(), "%d.%d.%d", &major, &minor, &build));
-}
 
 int DumpGenericException(const wchar_t* szExceptionDescription,
                          DWORD dwExceptionCode, PVOID pExceptionAddress) {
@@ -511,3 +233,395 @@ LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs) {
 
   return 0;
 }
+
+std::vector<std::wstring> error_array;
+uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...) {
+  uint32_t retval = 0;
+  va_list ap;
+  wchar_t err[1024] = {0};
+
+  if (fmt == NULL) return 0;
+
+  if (verbose) {
+    va_start(ap, fmt);
+    vfwprintf(stdout, fmt, ap);
+    fwprintf(stdout, L"\n");
+    va_end(ap);
+  }
+
+  va_start(ap, fmt);
+  retval = vswprintf(err, _countof(err), fmt, ap);
+  va_end(ap);
+  error_array.push_back(err);
+
+  return retval;
+}
+
+std::wstring A2W(const std::string& str) {
+  int length_wide = MultiByteToWideChar(CP_ACP, 0, str.data(), -1, NULL, 0);
+  wchar_t *string_wide = static_cast<wchar_t*>(_alloca((length_wide * sizeof(wchar_t)) + sizeof(wchar_t)));
+  MultiByteToWideChar(CP_ACP, 0, str.data(), -1, string_wide, length_wide);
+  std::wstring result(string_wide, length_wide - 1);
+  return result;
+}
+
+std::string W2A(const std::wstring& str) {
+  int length_ansi = WideCharToMultiByte(CP_ACP, 0, str.data(), -1, NULL, 0, NULL, NULL);
+  char* string_ansi = static_cast<char*>(_alloca(length_ansi + sizeof(char)));
+  WideCharToMultiByte(CP_ACP, 0, str.data(), -1, string_ansi, length_ansi, NULL, NULL);
+  std::string result(string_ansi, length_ansi - 1);
+  return result;
+}
+
+
+std::wstring FormatLocalTime(time_t datetime) {
+  wchar_t buf[64] = {0};
+  struct tm* tm = NULL;
+
+  tm = localtime(&datetime);
+  wcsftime(buf, _countof(buf) - 1, L"%FT%T%z", tm);
+
+  return std::wstring(buf);
+}
+
+bool StartsWithCaseInsensitive(const std::wstring& text, const std::wstring& prefix) {
+  return (prefix.empty() ||
+    (text.size() >= prefix.size() &&
+      std::mismatch(text.begin(), text.end(), prefix.begin(), prefix.end(),
+        [](wchar_t first_char, wchar_t second_char) {
+          return first_char == second_char || towlower(first_char) == towlower(second_char);
+        }).second == prefix.end()));
+}
+
+bool GetDictionaryValue(std::string& dict, std::string name,
+                        std::string defaultValue, std::string& value) {
+  if (std::string::npos != dict.find(name.c_str(), 0)) {
+    size_t pos = dict.find(name.c_str(), 0);
+    size_t eol = dict.find("\n", pos);
+    value = dict.substr(pos + name.size(), eol - (pos + name.size()));
+    return true;
+  }
+  value = defaultValue;
+  return false;
+}
+
+bool SanitizeContents(std::string& str) {
+  auto iter = str.begin();
+  while (iter != str.end()) {
+    if (*iter == '\r') {
+      iter = str.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
+  return true;
+}
+
+bool StripWhitespace(std::string& str) {
+  while (1) {
+    if (str.length() == 0) break;
+    if (!isascii(str[0])) break;
+    if (!isspace(str[0])) break;
+    str.erase(0, 1);
+  }
+
+  int n = (int)str.length();
+  while (n > 0) {
+    if (!isascii(str[n - 1])) break;
+    if (!isspace(str[n - 1])) break;
+    n--;
+  }
+  str.erase(n, str.length() - n);
+  return true;
+}
+
+bool ParseVersion(std::string version, int& major, int& minor, int& build) {
+  return (0 != sscanf_s(version.c_str(), "%d.%d.%d", &major, &minor, &build));
+}
+
+bool ExpandEnvironmentVariables(const wchar_t* source, std::wstring& destination) {
+  try {
+    DWORD dwReserve = ExpandEnvironmentStrings(source, nullptr, 0);
+    if (dwReserve == 0) {
+      return false;
+    }
+    destination.resize(dwReserve);
+    DWORD dwWritten = ExpandEnvironmentStrings(source, &destination[0],
+                                               (DWORD)destination.size());
+    if (dwWritten == 0) {
+      return false;
+    }
+    // dwWritten includes the null terminating character
+    destination.resize(dwWritten - 1);
+  } catch (std::bad_alloc&) {
+    return false;
+  }
+  return true;
+}
+
+bool DirectoryExists(std::wstring directory) {
+  if (directory.empty()) {
+    return false;
+  }
+  DWORD fileAttr = GetFileAttributes(directory.c_str());
+  return (fileAttr != INVALID_FILE_ATTRIBUTES &&
+          (fileAttr & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+bool IsKnownFileExtension(const std::vector<std::wstring>& exts, const std::wstring &file) {
+  for (const auto& ext : exts) {
+    if ((file.size() >= ext.size()) &&
+      (_wcsicmp(file.substr(file.size() - ext.size()).c_str(), ext.c_str()) == 0))
+      return true;
+  }
+  return false;
+}
+
+bool NormalizeDriveName(std::wstring& drive) {
+  if ((0 == drive.substr(0, 1).compare(L"\"")) || (0 == drive.substr(0, 1).compare(L"'"))) {
+    drive.erase(0, 1);
+  }
+  if ((0 == drive.substr(drive.size() - 1, 1).compare(L"\"")) || (0 == drive.substr(drive.size() - 1, 1).compare(L"'"))) {
+    drive.erase(drive.size() - 1, 1);
+  }
+  if (0 != drive.substr(drive.size() - 1, 1).compare(L"\\")) {
+    drive += L"\\";
+  }
+  return true;
+}
+
+bool NormalizeDirectoryName(std::wstring& dir) {
+  if ((0 == dir.substr(0, 1).compare(L"\"")) || (0 == dir.substr(0, 1).compare(L"'"))) {
+    dir.erase(0, 1);
+  }
+  if ((0 == dir.substr(dir.size() - 1, 1).compare(L"\"")) || (0 == dir.substr(dir.size() - 1, 1).compare(L"'"))) {
+    dir.erase(dir.size() - 1, 1);
+  }
+  if (0 != dir.substr(dir.size() - 1, 1).compare(L"\\")) {
+    dir += L"\\";
+  }
+  return true;
+}
+
+bool NormalizeFileName(std::wstring& file) {
+  if ((0 == file.substr(0, 1).compare(L"\"")) || (0 == file.substr(0, 1).compare(L"'"))) {
+    file.erase(0, 1);
+  }
+  if ((0 == file.substr(file.size() - 1, 1).compare(L"\"")) || (0 == file.substr(file.size() - 1, 1).compare(L"'"))) {
+    file.erase(file.size() - 1, 1);
+  }
+  return true;
+}
+
+bool NormalizeFileExtension(std::wstring& ext) {
+  if ((0 == ext.substr(0, 1).compare(L"\"")) || (0 == ext.substr(0, 1).compare(L"'"))) {
+    ext.erase(0, 1);
+  }
+  if ((0 == ext.substr(ext.size() - 1, 1).compare(L"\"")) || (0 == ext.substr(ext.size() - 1, 1).compare(L"'"))) {
+    ext.erase(ext.size() - 1, 1);
+  }
+  return true;
+}
+
+bool UncompressZIPContentsToString(unzFile zf, std::string& str) {
+  int32_t rv = ERROR_SUCCESS;
+  char    buf[1024];
+
+  rv = unzOpenCurrentFile(zf);
+  if (UNZ_OK == rv) {
+    do {
+      memset(buf, 0, sizeof(buf));
+      rv = unzReadCurrentFile(zf, buf, sizeof(buf));
+      if (rv < 0 || rv == 0) break;
+      str.append(buf, rv);
+    } while (rv > 0);
+    unzCloseCurrentFile(zf);
+  }
+
+  return true;
+}
+
+bool UncompressBZIPContentsToFile(BZFILE* bzf, std::wstring file) {
+  int32_t rv = ERROR_SUCCESS;
+  HANDLE  h = NULL; 
+  DWORD   dwBytesWritten = 0;
+  char    buf[1024];
+
+  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
+                 FILE_ATTRIBUTE_TEMPORARY, NULL);
+  if (h != INVALID_HANDLE_VALUE) {
+    do {
+      memset(buf, 0, sizeof(buf));
+      rv = BZ2_bzread(bzf, buf, sizeof(buf));
+      if (rv < 0 || rv == 0) break;
+      WriteFile(h, buf, rv, &dwBytesWritten, NULL);
+    } while (rv > 0);
+    CloseHandle(h);
+  }
+
+  return (h != INVALID_HANDLE_VALUE);
+}
+
+bool UncompressGZIPContentsToFile(gzFile gzf, std::wstring file) {
+  int32_t rv = ERROR_SUCCESS;
+  HANDLE  h = NULL; 
+  DWORD   dwBytesWritten = 0;
+  char    buf[1024];
+
+  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
+                 FILE_ATTRIBUTE_TEMPORARY, NULL);
+  if (h != INVALID_HANDLE_VALUE) {
+    do {
+      memset(buf, 0, sizeof(buf));
+      rv = gzread(gzf, buf, sizeof(buf));
+      if (rv < 0 || rv == 0) break;
+      WriteFile(h, buf, rv, &dwBytesWritten, NULL);
+    } while (rv > 0);
+    CloseHandle(h);
+  }
+
+  return (h != INVALID_HANDLE_VALUE);
+}
+
+bool UncompressZIPContentsToFile(unzFile zf, std::wstring file) {
+  int32_t rv = ERROR_SUCCESS;
+  HANDLE  h = NULL;
+  DWORD   dwBytesWritten = 0;
+  char    buf[1024];
+
+  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
+                 FILE_ATTRIBUTE_TEMPORARY, NULL);
+  if (h != INVALID_HANDLE_VALUE) {
+    rv = unzOpenCurrentFile(zf);
+    if (UNZ_OK == rv) {
+      do {
+        memset(buf, 0, sizeof(buf));
+        rv = unzReadCurrentFile(zf, buf, sizeof(buf));
+        if (rv < 0 || rv == 0) break;
+        WriteFile(h, buf, rv, &dwBytesWritten, NULL);
+      } while (rv > 0);
+      unzCloseCurrentFile(zf);
+    }
+    CloseHandle(h);
+  }
+
+  return (h != INVALID_HANDLE_VALUE);
+}
+
+std::wstring GetHostName() {
+  wchar_t buf[1024] = {0};
+  DWORD size = _countof(buf);
+  std::wstring hostname;
+
+  if (GetComputerNameEx(ComputerNameDnsFullyQualified, buf, &size)) {
+    hostname = buf;
+  }
+
+  return hostname;
+}
+
+std::wstring GetScanUtilityDirectory() {
+  wchar_t path[MAX_PATH] = {0};
+  std::wstring utility_dir;
+  std::wstring::size_type pos;
+  if (GetModuleFileName(NULL, path, _countof(path))) {
+    utility_dir = path;
+    pos = utility_dir.find_last_of(L"\\");
+    utility_dir = utility_dir.substr(0, pos);
+  }
+  return utility_dir;
+}
+
+std::wstring GetReportDirectory() {
+  std::wstring destination_dir;
+  std::wstring report_dir;
+  DWORD dwVersion = 0; 
+  DWORD dwMajorVersion = 0;
+  DWORD dwMinorVersion = 0; 
+
+  dwVersion = GetVersion();
+  dwMajorVersion = (DWORD)(LOBYTE(LOWORD(dwVersion)));
+  dwMinorVersion = (DWORD)(HIBYTE(LOWORD(dwVersion)));
+
+  if ( (dwMajorVersion >= 6) ||
+       (dwMajorVersion == 5 && dwMinorVersion >= 3) ) {
+    //
+    // Windows Vista or Better
+    //
+    if (ExpandEnvironmentVariables(qualys_program_data_location,
+                                   destination_dir)) {
+      if (!DirectoryExists(destination_dir.c_str())) {
+        _wmkdir(destination_dir.c_str());
+      }
+      report_dir = destination_dir;
+    }
+  } else {
+    //
+    // Windows XP, Windows Server 2003, Windows Server 2003 R2
+    //
+    if (ExpandEnvironmentVariables(qualys_program_data_legacy_location,
+                                   destination_dir)) {
+      if (!DirectoryExists(destination_dir.c_str())) {
+        _wmkdir(destination_dir.c_str());
+      }
+      report_dir = destination_dir;
+    }
+  }
+
+  if (report_dir.empty()) {
+    report_dir = GetScanUtilityDirectory();
+  }
+  return report_dir;
+}
+
+std::wstring GetSignatureReportFindingsFilename() {
+  return GetReportDirectory() + L"\\" + report_sig_output_file;
+}
+
+std::wstring GetSignatureReportSummaryFilename() {
+  return GetReportDirectory() + L"\\" + report_sig_summary_file;
+}
+
+std::wstring GetTempporaryFilename() {
+  wchar_t tmpPath[_MAX_PATH + 1];
+  wchar_t tmpFilename[_MAX_PATH + 1];
+
+  GetTempPath(_countof(tmpPath), tmpPath);
+  GetTempFileName(tmpPath, L"qua", 0, tmpFilename);
+
+  return std::wstring(tmpFilename);
+}
+
+int32_t CleanupTemporaryFiles() {
+  int32_t         rv = ERROR_SUCCESS;
+  WIN32_FIND_DATA FindFileData;
+  HANDLE          hFind;
+  std::wstring    search;
+  std::wstring    filename;
+  std::wstring    fullfilename;
+  wchar_t         tmpPath[_MAX_PATH + 1];
+
+  GetTempPath(_countof(tmpPath), tmpPath);
+
+  search = tmpPath + std::wstring(L"qua*.tmp");
+
+  hFind = FindFirstFile(search.c_str(), &FindFileData);
+  if (hFind != INVALID_HANDLE_VALUE) {
+    do {
+      filename = FindFileData.cFileName;
+
+      if ((filename.size() == 1) && (filename == L".")) continue;
+      if ((filename.size() == 2) && (filename == L"..")) continue;
+
+      std::wstring fullfilename = std::wstring(tmpPath) + filename;
+      DeleteFile(fullfilename.c_str());
+
+    } while (FindNextFile(hFind, &FindFileData));
+    FindClose(hFind);
+  }  else {
+    rv = GetLastError();
+  }
+
+  return rv;
+}
+

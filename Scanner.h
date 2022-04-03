@@ -1,5 +1,7 @@
 #pragma once
 
+class CJavaManifest;
+
 class CScannerOptions {
 public:
   bool console;
@@ -25,6 +27,7 @@ public:
   }
 };
 
+int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wstring file_physical);
 int32_t ScanFile(CScannerOptions& options, std::wstring file, std::wstring file_physical);
 int32_t ScanDirectory(CScannerOptions& options, std::wstring directory, std::wstring directory_physical);
 int32_t ScanLocalDrives(CScannerOptions& options);

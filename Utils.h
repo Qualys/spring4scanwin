@@ -15,18 +15,22 @@
 #define ARG(S) ARGX3(L"-" #S, L"--" #S, L"/" #S)
 #define ARGPARAMCOUNT(X) ((i + X) <= (argc - 1))
 
-using PairStack = std::stack<std::pair<std::wstring, std::wstring>>;
-using StringPair = std::pair<std::wstring, std::wstring>;
+
+LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs);
+
+extern std::vector<std::wstring> error_array;
+uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...);
+
 
 std::wstring A2W(const std::string& str);
 std::string W2A(const std::wstring& str);
-bool StartsWithCaseInsensitive(const std::wstring& text, const std::wstring& prefix);
 
 std::wstring FormatLocalTime(time_t datetime);
+bool StartsWithCaseInsensitive(const std::wstring& text, const std::wstring& prefix);
 bool GetDictionaryValue(std::string& dict, std::string name, std::string defaultValue, std::string& value);
 bool SanitizeContents(std::string& str);
-void SplitWideString(std::wstring str, const std::wstring& token, std::vector<std::wstring>& result);
 bool StripWhitespace(std::string& str);
+bool ParseVersion(std::string version, int& major, int& minor, int& build);
 
 bool ExpandEnvironmentVariables(const wchar_t* source, std::wstring& destination);
 bool DirectoryExists(std::wstring directory);
@@ -35,6 +39,13 @@ bool NormalizeDriveName(std::wstring& drive);
 bool NormalizeDirectoryName(std::wstring& dir);
 bool NormalizeFileName(std::wstring& file);
 bool NormalizeFileExtension(std::wstring& ext);
+std::wstring GetTempporaryFilename();
+int32_t CleanupTemporaryFiles();
+
+bool UncompressZIPContentsToString(unzFile zf, std::string& str);
+bool UncompressBZIPContentsToFile(BZFILE* bzf, std::wstring file); 
+bool UncompressGZIPContentsToFile(gzFile gzf, std::wstring file);
+bool UncompressZIPContentsToFile(unzFile zf, std::wstring file);
 
 std::wstring GetHostName();
 std::wstring GetScanUtilityDirectory();
@@ -42,10 +53,3 @@ std::wstring GetReportDirectory();
 std::wstring GetSignatureReportFindingsFilename();
 std::wstring GetSignatureReportSummaryFilename();
 
-uint32_t LogErrorMessage(bool verbose, const wchar_t* fmt, ...);
-
-bool ParseVersion(std::string version, int& major, int& minor, int& build);
-
-LONG CALLBACK CatchUnhandledExceptionFilter(PEXCEPTION_POINTERS pExPtrs);
-
-extern std::vector<std::wstring> error_array;

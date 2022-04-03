@@ -35,7 +35,7 @@ struct CCommandLineOptions {
   bool help{ false };
 
   std::vector<std::wstring> knownTarExtensions{
-   L".tar"
+    L".tar"
   };
 
   std::vector<std::wstring> knownGZipTarExtensions{
@@ -228,7 +228,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
     wprintf(L"Qualys Spring-Boot Vulnerability Scanner %S\n", SCANNER_VERSION_STRING);
     wprintf(L"https://www.qualys.com/\n");
     wprintf(L"Dependencies: minizip/1.1 zlib/%S, bzip2/%S, rapidjson/%S\n", zlibVersion(), BZ2_bzlibVersion(), RAPIDJSON_VERSION_STRING);
-    wprintf(L"Supported CVE(s): CVE-2022-22965\n\n");
+    wprintf(L"Supported CVE(s): CVE-2022-22963, CVE-2022-22965\n\n");
   }
 
   if (cmdline_options.help) {
@@ -364,7 +364,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
   repSummary.scanStart = time(0);
 
   if (cmdline_options.reportSig) {
-    wprintf(L"Scan Start: %s", FormatLocalTime(repSummary.scanStart).c_str());
+    wprintf(L"Scan Start: %s\n", FormatLocalTime(repSummary.scanStart).c_str());
   }
 
   if (cmdline_options.scanLocalDrives) {
@@ -420,7 +420,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
   }
   
   if (cmdline_options.reportSig) {
-    wprintf(L"\nScan End: %s", FormatLocalTime(repSummary.scanEnd).c_str());
+    wprintf(L"\nScan End: %s\n", FormatLocalTime(repSummary.scanEnd).c_str());
   }
 
 
@@ -450,13 +450,13 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
 END:
 
   if (cmdline_options.reportSig) {
-    wprintf(L"Result File: %s", GetSignatureReportFindingsFilename().c_str());
-    wprintf(L"Summary File: %s", GetSignatureReportSummaryFilename().c_str());
-    wprintf(L"Run Status: %s", repSummary.scanStatus.c_str());
+    wprintf(L"Result File: %s\n", GetSignatureReportFindingsFilename().c_str());
+    wprintf(L"Summary File: %s\n", GetSignatureReportSummaryFilename().c_str());
+    wprintf(L"Run Status: %s\n", repSummary.scanStatus.c_str());
     if (repSummary.scanErrorCount) {
       wprintf(L"Errors :");
       for (const auto& e : error_array) {
-        wprintf(L"%s", e.c_str());
+        wprintf(L"%s\n", e.c_str());
       }
     }
   }

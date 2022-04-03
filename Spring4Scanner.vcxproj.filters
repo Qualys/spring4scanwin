@@ -30,6 +30,9 @@
     <ClCompile Include="MainScan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Java.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Reports.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Java.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

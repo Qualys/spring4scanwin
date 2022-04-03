@@ -178,6 +178,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Java.cpp" />
     <ClCompile Include="MainScan.cpp" />
     <ClCompile Include="Reports.cpp" />
     <ClCompile Include="Scanner.cpp" />
@@ -185,6 +186,7 @@
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Java.h" />
     <ClInclude Include="Reports.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Scanner.h" />

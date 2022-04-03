@@ -163,6 +163,11 @@ int32_t GenerateReportDetail(DocumentW& doc) {
     ValueW vManifestTitle(rapidjson::kStringType);
     ValueW vManifestVendor(rapidjson::kStringType);
     ValueW vManifestVersion(rapidjson::kStringType);
+    ValueW vDetectedSpringFramework(rapidjson::kTrueType);
+    ValueW vDetectedSpringCloud(rapidjson::kTrueType);
+    ValueW vDependencies(rapidjson::kArrayType);
+    ValueW vCVE202222963Mitigated(rapidjson::kTrueType);
+    ValueW vCVE202222965Mitigated(rapidjson::kTrueType);
     ValueW vCVEStatus(rapidjson::kStringType);
     ValueW oDetail(rapidjson::kObjectType);
 
@@ -170,12 +175,25 @@ int32_t GenerateReportDetail(DocumentW& doc) {
     vManifestVendor.SetString(vuln.manifestTitle.c_str(), doc.GetAllocator());
     vManifestVendor.SetString(vuln.manifestVendor.c_str(), doc.GetAllocator());
     vManifestVersion.SetString(vuln.manifestVersion.c_str(), doc.GetAllocator());
+    vDetectedSpringFramework.SetBool(vuln.detectedSpringFramework);
+    vDetectedSpringCloud.SetBool(vuln.detectedSpringCloud);
+    for (const auto& depend : vuln.dependencies) {
+      ValueW vDepend(depend.c_str(), doc.GetAllocator());
+      vDependencies.PushBack(vDepend, doc.GetAllocator());
+    }
+    vCVE202222963Mitigated.SetBool(vuln.cve202222963Mitigated);
+    vCVE202222965Mitigated.SetBool(vuln.cve202222965Mitigated);
     vCVEStatus.SetString(vuln.cveStatus.c_str(), doc.GetAllocator());
 
     oDetail.AddMember(L"file", vFile, doc.GetAllocator());
     oDetail.AddMember(L"manifestTitle", vManifestTitle, doc.GetAllocator());
     oDetail.AddMember(L"manifestVendor", vManifestVendor, doc.GetAllocator());
     oDetail.AddMember(L"manifestVersion", vManifestVersion, doc.GetAllocator());
+    oDetail.AddMember(L"detectedSpringFramework", vDetectedSpringFramework, doc.GetAllocator());
+    oDetail.AddMember(L"detectedSpringCloud", vDetectedSpringCloud, doc.GetAllocator());
+    oDetail.AddMember(L"dependencies", vDependencies, doc.GetAllocator());
+    oDetail.AddMember(L"cve202222963Mitigated", vCVEStatus, doc.GetAllocator());
+    oDetail.AddMember(L"cve202222965Mitigated", vCVEStatus, doc.GetAllocator());
     oDetail.AddMember(L"cveStatus", vCVEStatus, doc.GetAllocator());
 
     oDetails.PushBack(oDetail, doc.GetAllocator());
@@ -258,15 +276,18 @@ int32_t GenerateSignatureReport() {
       CReportVulnerabilities vuln = repVulns[i];
 
       fwprintf_s(signature_file,
-                 L"Source: Manifest Title: %s, Manifest Vendor: %s, Manifest Version: %s, cveStatus: %s\n",
+                 L"Source: Manifest Title: %s, Manifest Vendor: %s, Manifest Version: %s\n",
                  vuln.manifestTitle.c_str(),
                  vuln.manifestVendor.c_str(),
-                 vuln.manifestVersion.c_str(),
-                 vuln.cveStatus.c_str());
+                 vuln.manifestVersion.c_str());
       fwprintf_s(signature_file, L"Path: %s\n", vuln.file.c_str());
 
-      for (size_t i = 0; i < vuln.libs.size(); i++) {
-        fwprintf_s(signature_file, L"%s\n", vuln.libs[i].c_str());
+      if (vuln.dependencies.size()) {
+        for (size_t i = 0; i < vuln.dependencies.size(); i++) {
+          fwprintf_s(signature_file, L"%s\n", vuln.dependencies[i].c_str());
+        }
+      } else {
+          fwprintf_s(signature_file, L"SpringCloudCore Version: %s\n", vuln.manifestVersion.c_str());
       }
 
       fwprintf_s(signature_file, L"------------------------------------------------------------------------\n");

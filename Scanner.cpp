@@ -2,57 +2,9 @@
 #include "stdafx.h"
 #include "Utils.h"
 #include "Reports.h"
+#include "Java.h"
 #include "Scanner.h"
 
-#include "zlib/zlib.h"
-#include "bzip2/bzlib.h"
-#include "minizip/unzip.h"
-#include "minizip/iowin32.h"
-#include "tarlib/tarlib.h"
-
-
-std::wstring GetTempporaryFilename() {
-  wchar_t tmpPath[_MAX_PATH + 1];
-  wchar_t tmpFilename[_MAX_PATH + 1];
-
-  GetTempPath(_countof(tmpPath), tmpPath);
-  GetTempFileName(tmpPath, L"qua", 0, tmpFilename);
-
-  return std::wstring(tmpFilename);
-}
-
-int32_t CleanupTemporaryFiles() {
-  int32_t         rv = ERROR_SUCCESS;
-  WIN32_FIND_DATA FindFileData;
-  HANDLE          hFind;
-  std::wstring    search;
-  std::wstring    filename;
-  std::wstring    fullfilename;
-  wchar_t         tmpPath[_MAX_PATH + 1];
-
-  GetTempPath(_countof(tmpPath), tmpPath);
-
-  search = tmpPath + std::wstring(L"qua*.tmp");
-
-  hFind = FindFirstFile(search.c_str(), &FindFileData);
-  if (hFind != INVALID_HANDLE_VALUE) {
-    do {
-      filename = FindFileData.cFileName;
-
-      if ((filename.size() == 1) && (filename == L".")) continue;
-      if ((filename.size() == 2) && (filename == L"..")) continue;
-
-      std::wstring fullfilename = std::wstring(tmpPath) + filename;
-      DeleteFile(fullfilename.c_str());
-
-    } while (FindNextFile(hFind, &FindFileData));
-    FindClose(hFind);
-  }  else {
-    rv = GetLastError();
-  }
-
-  return rv;
-}
 
 bool IsDriveExcluded(CScannerOptions& options, std::wstring drive) {
   size_t excludedDriveCount = options.excludedDrives.size();
@@ -78,90 +30,6 @@ bool IsFileExcluded(CScannerOptions& options, std::wstring file) {
   return false;
 }
 
-bool UncompressZIPContentsToString(unzFile zf, std::string& str) {
-  int32_t rv = ERROR_SUCCESS;
-  char    buf[1024];
-
-  rv = unzOpenCurrentFile(zf);
-  if (UNZ_OK == rv) {
-    do {
-      memset(buf, 0, sizeof(buf));
-      rv = unzReadCurrentFile(zf, buf, sizeof(buf));
-      if (rv < 0 || rv == 0) break;
-      str.append(buf, rv);
-    } while (rv > 0);
-    unzCloseCurrentFile(zf);
-  }
-
-  return true;
-}
-
-bool UncompressBZIPContentsToFile(BZFILE* bzf, std::wstring file) {
-  int32_t rv = ERROR_SUCCESS;
-  HANDLE  h = NULL; 
-  DWORD   dwBytesWritten = 0;
-  char    buf[1024];
-
-  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
-                 FILE_ATTRIBUTE_TEMPORARY, NULL);
-  if (h != INVALID_HANDLE_VALUE) {
-    do {
-      memset(buf, 0, sizeof(buf));
-      rv = BZ2_bzread(bzf, buf, sizeof(buf));
-      if (rv < 0 || rv == 0) break;
-      WriteFile(h, buf, rv, &dwBytesWritten, NULL);
-    } while (rv > 0);
-    CloseHandle(h);
-  }
-
-  return (h != INVALID_HANDLE_VALUE);
-}
-
-bool UncompressGZIPContentsToFile(gzFile gzf, std::wstring file) {
-  int32_t rv = ERROR_SUCCESS;
-  HANDLE  h = NULL; 
-  DWORD   dwBytesWritten = 0;
-  char    buf[1024];
-
-  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
-                 FILE_ATTRIBUTE_TEMPORARY, NULL);
-  if (h != INVALID_HANDLE_VALUE) {
-    do {
-      memset(buf, 0, sizeof(buf));
-      rv = gzread(gzf, buf, sizeof(buf));
-      if (rv < 0 || rv == 0) break;
-      WriteFile(h, buf, rv, &dwBytesWritten, NULL);
-    } while (rv > 0);
-    CloseHandle(h);
-  }
-
-  return (h != INVALID_HANDLE_VALUE);
-}
-
-bool UncompressZIPContentsToFile(unzFile zf, std::wstring file) {
-  int32_t rv = ERROR_SUCCESS;
-  HANDLE  h = NULL;
-  DWORD   dwBytesWritten = 0;
-  char    buf[1024];
-
-  h = CreateFile(file.c_str(), GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS,
-                 FILE_ATTRIBUTE_TEMPORARY, NULL);
-  if (h != INVALID_HANDLE_VALUE) {
-    rv = unzOpenCurrentFile(zf);
-    if (UNZ_OK == rv) {
-      do {
-        memset(buf, 0, sizeof(buf));
-        rv = unzReadCurrentFile(zf, buf, sizeof(buf));
-        if (rv < 0 || rv == 0) break;
-        WriteFile(h, buf, rv, &dwBytesWritten, NULL);
-      } while (rv > 0);
-      unzCloseCurrentFile(zf);
-    }
-    CloseHandle(h);
-  }
-
-  return (h != INVALID_HANDLE_VALUE);
-}
 
 int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wstring file_physical) {
   int32_t                   rv = ERROR_SUCCESS;
@@ -172,16 +40,11 @@ int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wst
   std::wstring              wFilename;
   std::wstring              tmpFilename;
   bool                      foundManifest = false;
-  bool                      foundManifestTitle = false;
-  bool                      foundManifestVendor = false;
-  bool                      foundManifestVersion = false;
+  bool                      foundJAR = false;
   bool                      foundWAR = false;
+  bool                      foundEAR = false;
+  CJavaManifest             javaManifest;
   std::string               manifest;
-  std::string               manifestTitle;
-  std::string               manifestVendor;
-  std::string               manifestVersion;
-  std::vector<std::string>  libs;
-  std::vector<std::wstring> wlibs;
 
   zlib_filefunc64_def zfm = { 0 };
   fill_win32_filefunc64W(&zfm);
@@ -194,9 +57,6 @@ int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wst
   if (NULL != zf) {
     ReportProcessCompressedFile();
 
-    //
-    // Check to see if there is evidence of Log4j being in the archive
-    //
     rv = unzGoToFirstFile(zf);
     if (UNZ_OK == rv) {
       do {
@@ -204,54 +64,15 @@ int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wst
 
         if (UNZ_OK == rv) {
           if (0 == stricmp(filename, "META-INF/MANIFEST.MF")) {
+            foundJAR = true;
             foundManifest = true;
-            ReportProcessJARFile();
             UncompressZIPContentsToString(zf, manifest);
           }
+          if (0 == stricmp(filename, "WEB-INF/web.xml")) {
+            foundWAR = true;
+          }
           if (0 == stricmp(filename, "META-INF/application.xml")) {
-            ReportProcessEARFile();
-          }
-          p = NULL;
-          p = strstr(filename, "WEB-INF/lib/spring-beans");
-          if (NULL != p) {
-            libs.push_back(filename);
-          }
-          p = NULL;
-          p = strstr(filename, "WEB-INF/lib/spring-boot");
-          if (NULL != p) {
-            libs.push_back(filename);
-          }
-          p = NULL;
-          p = strstr(filename, "WEB-INF/lib/spring-core");
-          if (NULL != p) {
-            libs.push_back(filename);
-          }
-          p = NULL;
-          p = strstr(filename, "WEB-INF/lib/spring-webflux");
-          if (NULL != p) {
-            libs.push_back(filename);
-          }
-          p = NULL;
-          p = strstr(filename, "WEB-INF/lib/spring-webmvc");
-          if (NULL != p) {
-            libs.push_back(filename);
-          }
-
-          //
-          // Add Support for nested ZIP files
-          //
-          wFilename = A2W(filename);
-          if (IsKnownFileExtension(options.knownZipExtensions, wFilename)) {
-            tmpFilename = GetTempporaryFilename();
-
-            if (UncompressZIPContentsToFile(zf, tmpFilename)) {
-              std::wstring masked_filename = file + L"!" + wFilename;
-              std::wstring alternate_filename = tmpFilename;
-
-              ScanFileZIPArchive(options, masked_filename, alternate_filename);
-            }
-
-            DeleteFile(tmpFilename.c_str());
+            foundEAR = true;
           }
 
         }
@@ -262,50 +83,20 @@ int32_t ScanFileZIPArchive(CScannerOptions& options, std::wstring file, std::wst
   }
   rv = ERROR_SUCCESS;
 
+  if (!manifest.empty()) {
+    ParseJavaManifest(manifest, javaManifest);
+  }
 
-  //
-  // If we are a WAR file, and we have some libs, we need to report on it.
-  //
-  if (libs.size()) {
+  if (0) {
+  } else if (foundWAR || (javaManifest.mainClass == "org.springframework.boot.loader.WarLauncher")) {
     ReportProcessWARFile();
-    std::string cveStatus = "Unknown";
-
-    SanitizeContents(manifest);
-
-    if (foundManifest) {
-      foundManifestTitle = GetDictionaryValue(manifest, "Implementation-Title:", "Unknown", manifestTitle);
-      if (!foundManifestTitle) {
-        foundManifestTitle = GetDictionaryValue(manifest, "Bundle-Title:", "Unknown", manifestTitle);
-      }
-      foundManifestVendor = GetDictionaryValue(manifest, "Implementation-Vendor-Id:", "Unknown", manifestVendor);
-      if (!foundManifestVendor) {
-        foundManifestVendor = GetDictionaryValue(manifest, "Implementation-Vendor:", "Unknown", manifestVendor);
-        if (!foundManifestVendor) {
-          foundManifestVendor = GetDictionaryValue(manifest, "Bundle-Vendor:", "Unknown", manifestVendor);
-        }
-      }
-      foundManifestVersion = GetDictionaryValue(manifest, "Implementation-Version:", "Unknown", manifestVersion);
-      if (!foundManifestVersion) {
-        foundManifestVersion = GetDictionaryValue(manifest, "Bundle-Version:", "Unknown", manifestVersion);
-      }
-
-      StripWhitespace(manifestTitle);
-      StripWhitespace(manifestVendor);
-      StripWhitespace(manifestVersion);
-    }
-
-    for (size_t i = 0; i < libs.size(); i++) {
-      wlibs.push_back(A2W(libs[i].c_str()));
-    }
-
-    repVulns.push_back(CReportVulnerabilities(
-      file, A2W(manifestTitle), A2W(manifestVendor), A2W(manifestVersion), wlibs, A2W(cveStatus)
-    ));
-
-    if (options.console) {
-      wprintf(L"Found: '%s' ( Manifest Title: %S, Manifest Vendor: %S, Manifest Version: %S, CVE Status: %S )\n",
-              file.c_str(), manifestTitle.c_str(), manifestVendor.c_str(), manifestVersion.c_str(), cveStatus.c_str());
-    }
+    rv = ProcessJavaFileWAR(options, file, file_physical);
+  } else if (foundEAR) {
+    ReportProcessEARFile();
+    rv = ProcessJavaFileEAR(options, file, file_physical);
+  } else if (foundJAR) {
+    ReportProcessJARFile();
+    rv = ProcessJavaFileJAR(options, file, file_physical);
   }
 
   return rv;

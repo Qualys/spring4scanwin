@@ -70,7 +70,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "Qualys, Inc."
-            VALUE "FileDescription", "Qualys Spring4Shell Vulnerability Scanner"
+            VALUE "FileDescription", "Qualys Spring Framework Vulnerability Scanner"
             VALUE "FileVersion", SCANNER_VERSION_STRING
             VALUE "InternalName", "Spring4Scan.exe"
             VALUE "LegalCopyright", "Copyright (C) 2022"

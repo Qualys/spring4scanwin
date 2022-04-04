@@ -275,19 +275,12 @@ int32_t GenerateSignatureReport() {
     for (size_t i = 0; i < repVulns.size(); i++) {
       CReportVulnerabilities vuln = repVulns[i];
 
-      fwprintf_s(signature_file,
-                 L"Source: Manifest Title: %s, Manifest Vendor: %s, Manifest Version: %s\n",
-                 vuln.manifestTitle.c_str(),
-                 vuln.manifestVendor.c_str(),
-                 vuln.manifestVersion.c_str());
-      fwprintf_s(signature_file, L"Path: %s\n", vuln.file.c_str());
-
       if (vuln.dependencies.size()) {
         for (size_t i = 0; i < vuln.dependencies.size(); i++) {
-          fwprintf_s(signature_file, L"%s\n", vuln.dependencies[i].c_str());
+          fwprintf_s(signature_file, L"Path= %s!%s\n", vuln.file.c_str(), vuln.dependencies[i].c_str());
         }
       } else {
-          fwprintf_s(signature_file, L"SpringCloudCore Version: %s\n", vuln.manifestVersion.c_str());
+          fwprintf_s(signature_file, L"Path= %s, SpringCloudCore Version: %s\n", vuln.file.c_str(), vuln.manifestVersion.c_str());
       }
 
       fwprintf_s(signature_file, L"------------------------------------------------------------------------\n");

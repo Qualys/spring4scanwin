@@ -8,6 +8,8 @@ https://github.com/Qualys/spring4scanwin/releases/download/1.0.0/Spring4Scan.zip
 The Spring4Scan.exe utility helps to detect CVE-2022-22963, and CVE-2022-22965 vulnerabilities.
 The utility will scan the entire hard drive(s) including archives (and nested JARs) for the Java libraries that indicates the Java application contains a vulnerable spring framework or spring cloud library. The utility will output its results to a console.
 
+**NOTE:** Preconditions related to JDK and Tomcat are environmental factors and are not covered by this utility.
+
 Qualys has added the following new QIDs that are designed to look for the results of this scan and mark the asset as vulnerable if the vulnerable spring framework or spring cloud library was found.
 - CVE-2022-22963
 - CVE-2022-22965

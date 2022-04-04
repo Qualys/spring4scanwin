@@ -227,7 +227,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
   if (!cmdline_options.no_logo) {
     wprintf(L"Qualys Spring-Boot Vulnerability Scanner %S\n", SCANNER_VERSION_STRING);
     wprintf(L"https://www.qualys.com/\n");
-    wprintf(L"Dependencies: minizip/1.1 zlib/%S, bzip2/%S, rapidjson/%S\n", zlibVersion(), BZ2_bzlibVersion(), RAPIDJSON_VERSION_STRING);
+    wprintf(L"Dependencies: minizip/1.1, zlib/%S, bzip2/%S, rapidjson/%S\n", zlibVersion(), BZ2_bzlibVersion(), RAPIDJSON_VERSION_STRING);
     wprintf(L"Supported CVE(s): CVE-2022-22963, CVE-2022-22965\n\n");
   }
 

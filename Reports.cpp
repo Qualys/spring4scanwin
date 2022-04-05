@@ -192,8 +192,8 @@ int32_t GenerateReportDetail(DocumentW& doc) {
     oDetail.AddMember(L"detectedSpringFramework", vDetectedSpringFramework, doc.GetAllocator());
     oDetail.AddMember(L"detectedSpringCloud", vDetectedSpringCloud, doc.GetAllocator());
     oDetail.AddMember(L"dependencies", vDependencies, doc.GetAllocator());
-    oDetail.AddMember(L"cve202222963Mitigated", vCVEStatus, doc.GetAllocator());
-    oDetail.AddMember(L"cve202222965Mitigated", vCVEStatus, doc.GetAllocator());
+    oDetail.AddMember(L"cve202222963Mitigated", vCVE202222963Mitigated, doc.GetAllocator());
+    oDetail.AddMember(L"cve202222965Mitigated", vCVE202222965Mitigated, doc.GetAllocator());
     oDetail.AddMember(L"cveStatus", vCVEStatus, doc.GetAllocator());
 
     oDetails.PushBack(oDetail, doc.GetAllocator());

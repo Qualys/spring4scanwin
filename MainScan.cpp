@@ -440,7 +440,7 @@ int32_t __cdecl wmain(int32_t argc, wchar_t* argv[]) {
     wprintf(L"\tVulnerabilities Found:\t\t %lld\n", repSummary.foundVunerabilities);
   }
 
-  if (cmdline_options.report) {
+  if (cmdline_options.report || cmdline_options.reportPretty) {
     GenerateJSONReport(cmdline_options.reportPretty);
   }
   if (cmdline_options.reportSig) {

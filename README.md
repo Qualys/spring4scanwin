@@ -1,7 +1,7 @@
 THIS SCRIPT IS PROVIDED TO YOU "AS IS." TO THE EXTENT PERMITTED BY LAW, QUALYS HEREBY DISCLAIMS ALL WARRANTIES AND LIABILITY FOR THE PROVISION OR USE OF THIS SCRIPT. IN NO EVENT SHALL THESE SCRIPTS BE DEEMED TO BE CLOUD SERVICES AS PROVIDED BY QUALYS
 
 # Direct Download Links
-https://github.com/Qualys/spring4scanwin/releases/download/1.0.1/Spring4Scan.zip
+https://github.com/Qualys/spring4scanwin/releases/download/1.0.2/Spring4Scan.zip
 
 # Spring4Scanner
 ## Description

@@ -10,9 +10,8 @@ The utility will scan the entire hard drive(s) including archives (and nested JA
 
 **NOTE:** Preconditions related to JDK and Tomcat are environmental factors and are not covered by this utility.
 
-Qualys has added the following new QIDs that are designed to look for the results of this scan and mark the asset as vulnerable if the vulnerable spring framework or spring cloud library was found.
-- CVE-2022-22963
-- CVE-2022-22965
+QID descriptions can be found here:
+https://blog.qualys.com/vulnerabilities-threat-research/2022/03/31/spring-framework-zero-day-remote-code-execution-spring4shell-vulnerability
 
 Qualys customers should use the following to run the tool on any asset they want to scan, from an elevated command prompt:
 > Spring4Scan.exe /scan /report_sig
